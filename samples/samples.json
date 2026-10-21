@@ -1,0 +1,42 @@
+{
+  "patient_005": {
+    "patient_id": 5,
+    "n_images": 15,
+    "labels": {
+      "H_pylori_infection_status": "negative",
+      "Presence_of_atrophy": "non_atrophic",
+      "Distribution_of_atrophy": "normal",
+      "Gastritis_type": "normal"
+    }
+  },
+  "patient_002": {
+    "patient_id": 2,
+    "n_images": 20,
+    "labels": {
+      "H_pylori_infection_status": "positive",
+      "Presence_of_atrophy": "atrophic",
+      "Distribution_of_atrophy": "antrum_predominant",
+      "Gastritis_type": "type_B"
+    }
+  },
+  "patient_018": {
+    "patient_id": 18,
+    "n_images": 25,
+    "labels": {
+      "H_pylori_infection_status": "negative",
+      "Presence_of_atrophy": "atrophic",
+      "Distribution_of_atrophy": "corpus_predominant",
+      "Gastritis_type": "type_A"
+    }
+  },
+  "patient_044": {
+    "patient_id": 44,
+    "n_images": 20,
+    "labels": {
+      "H_pylori_infection_status": "negative",
+      "Presence_of_atrophy": "atrophic",
+      "Distribution_of_atrophy": "antrum_and_corpus",
+      "Gastritis_type": "type_B"
+    }
+  }
+}
