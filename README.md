@@ -21,8 +21,7 @@ Given all endoscopy images of one patient, the app predicts four clinical dimens
    across tasks; PennyLane `lightning.qubit`) adds a small residual correction to the anchor's logits.
 
 In five-fold patient-level cross-validation QMT-PAT reached a mean balanced accuracy of 0.791
-(AUROC 0.920). For each task the app shows the class probabilities before and after the quantum
-correction, and flags predictions that break the EGID label hierarchy.
+(AUROC 0.920). For each task the app shows the class probabilities and flags predictions that break the EGID label hierarchy.
 
 The **fold-0** model is used by default (`FOLDS` in `config.py`); set `FOLDS = [0, 1, 2, 3, 4]` for a
 5-fold ensemble (about 5× slower; the sample patients are then no longer held out from every model).

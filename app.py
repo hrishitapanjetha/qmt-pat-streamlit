@@ -147,8 +147,6 @@ def _task_card_html(task, r, truth=None):
         ok = truth == r["predicted_raw"]
         mark, cls = ("✓", "ok") if ok else ("✗", "bad")
         truth_html = f'<div class="truth {cls}">{mark} Ground truth: <b>{label_of(task, truth)}</b></div>'
-    k = r["predicted_idx"]
-    anchor_p = list(r["anchor_probs"].values())[k] * 100
     return f"""
     <div class="task-card">
         <div class="task-title">{TASK_TITLES[task]}</div>
@@ -159,10 +157,6 @@ def _task_card_html(task, r, truth=None):
         <details class="all-probs">
             <summary>See all class probabilities</summary>
             {_prob_rows(r["all_probs"])}
-            <div class="delta-note">Before the quantum correction (patient-level attention model):</div>
-            {_prob_rows(r["anchor_probs"], "anchor")}
-            <div class="delta-note">Quantum correction for the predicted class: {r["delta"][k]:+.3f} logits
-            ({anchor_p:.1f}% → {conf_pct:.1f}%).</div>
         </details>
     </div>
     """
