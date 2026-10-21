@@ -114,8 +114,7 @@ or driven by <i>H. pylori</i>?</li>
 <p><b>How it works.</b> A fine-tuned Vision Transformer (ViT-B/16) turns each image into a feature
 vector; a patient-level attention model pools all images into one summary per question and makes a
 first prediction; a simulated <b>16-qubit circuit</b> (4 qubits per question, entangled across questions)
-then adds a small learned correction. In five-fold cross-validation on EGID it reached a mean
-balanced accuracy of 0.791 (AUROC 0.920).</p>
+then adds a small learned correction.</p>
 <p style="color:{TEXT_MUTED}; font-size:0.85rem; margin-bottom:0;">Research prototype, not a diagnostic device.
 Not clinically validated. Should never inform real patient care.</p>
 </div>
@@ -163,16 +162,8 @@ def _task_card_html(task, r, truth=None):
 
 
 def _results_html(results, hierarchy, caption, truth=None):
-    if hierarchy["consistent"]:
-        banner = (f'<div class="banner ok">✓ Consistent with the label hierarchy: '
-                  f'<b>{hierarchy["distribution"]}</b> atrophy → <b>{hierarchy["expected_atrophy"]}</b>, '
-                  f'<b>{hierarchy["expected_type"]}</b>.</div>')
-    else:
-        banner = (f'<div class="banner bad">⚠ The four predictions disagree with the label hierarchy: '
-                  f'<b>{hierarchy["distribution"]}</b> atrophy implies <b>{hierarchy["expected_atrophy"]}</b> and '
-                  f'<b>{hierarchy["expected_type"]}</b>.</div>')
     cards = "".join(_task_card_html(t, results[t], truth[t] if truth else None) for t in TASK_ORDER)
-    return f'<div class="results-caption">{caption}</div>{banner}<div class="results-grid">{cards}</div>'
+    return f'<div class="results-grid">{cards}</div>'
 
 
 # ---------------------------------------------------------------- model + samples
