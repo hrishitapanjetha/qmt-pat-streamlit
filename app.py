@@ -341,10 +341,6 @@ with left:
             if st.button("Analyze sample patient", type="primary", width="stretch"):
                 meta = samples[key]
                 run([Image.open(f) for f in files], results_slot, source=f"Sample patient {meta['patient_id']}: ")
-            st.caption(
-                "Sample patients are held-out test patients of fold 0, never seen in training "
-                "by this model. Images: EGID dataset, CC BY-NC-ND 4.0."
-            )
 
     with tab_upload:
         uploads = st.file_uploader(
