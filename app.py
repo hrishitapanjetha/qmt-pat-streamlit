@@ -4,6 +4,9 @@ Same model, samples and design as the Gradio app: give it all endoscopy images o
 patient and QMT-PAT predicts the four labels jointly. Checkpoints are read from
 checkpoints/ if present, otherwise downloaded from the Hugging Face Hub.
 """
+import base64
+import io
+
 import streamlit as st
 from PIL import Image
 
@@ -76,6 +79,54 @@ header[data-testid="stHeader"] {{ background: transparent; }}
     background: #FFF8E8; border: 1px solid #F0DDA6; border-radius: 12px;
     padding: 0.9rem 1.1rem; font-size: 0.85rem; color: #6B5518; margin-top: 1.5rem;
 }}
+.scan-wrap {{ display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.6rem; align-items: center; }}
+@media (max-width: 900px) {{ .scan-wrap {{ grid-template-columns: 1fr; }} }}
+.scan-box {{
+    position: relative; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden;
+    background: #1b2422;
+}}
+.scan-frame {{ padding: 8px; border: 2px dashed #C9DCD6; border-radius: 18px; background: #FFFFFF; }}
+.scan-box img {{
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0;
+}}
+.scan-box .corner {{ position: absolute; width: 26px; height: 26px; border-color: #5FD3E6; border-style: solid; z-index: 3; }}
+.scan-box .tl {{ top: 12px; left: 12px; border-width: 3px 0 0 3px; border-radius: 6px 0 0 0; }}
+.scan-box .tr {{ top: 12px; right: 12px; border-width: 3px 3px 0 0; border-radius: 0 6px 0 0; }}
+.scan-box .bl {{ bottom: 12px; left: 12px; border-width: 0 0 3px 3px; border-radius: 0 0 0 6px; }}
+.scan-box .br {{ bottom: 12px; right: 12px; border-width: 0 3px 3px 0; border-radius: 0 0 6px 0; }}
+.scan-line {{
+    position: absolute; left: 0; right: 0; height: 3px; z-index: 2;
+    background: linear-gradient(90deg, transparent, #7BE3F2 15%, #E6FBFF 50%, #7BE3F2 85%, transparent);
+    box-shadow: 0 0 14px 4px rgba(95,211,230,0.55), 0 0 40px 10px rgba(95,211,230,0.18);
+    animation: scan 2.4s ease-in-out infinite alternate;
+}}
+@keyframes scan {{ from {{ top: 4%; }} to {{ top: 95%; }} }}
+.scan-tint {{
+    position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, rgba(95,211,230,0.07), rgba(30,154,124,0.05));
+}}
+.scan-count {{
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 3;
+    background: rgba(15,30,27,0.72); color: #E6FBFF; font-size: 0.78rem;
+    padding: 0.2rem 0.7rem; border-radius: 999px; letter-spacing: 0.02em;
+}}
+.status-title {{ display: flex; align-items: center; gap: 0.6rem; font-weight: 600; color: #1F2A27; font-size: 1.05rem; margin-bottom: 1rem; }}
+.spinner {{
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    border: 3px solid #D7ECE6; border-top-color: {PRIMARY}; animation: spin 0.9s linear infinite;
+}}
+@keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+.step {{
+    display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; color: #9AA9A5;
+    margin: 0.55rem 0; opacity: 0.55; animation: step-on 0.4s ease forwards;
+}}
+.step .dot {{ width: 9px; height: 9px; border-radius: 50%; background: #CBD8D4; flex-shrink: 0; }}
+@keyframes step-on {{ to {{ color: #1F2A27; opacity: 1; }} }}
+.step.s1 {{ animation-delay: 0.2s; }} .step.s2 {{ animation-delay: 2.5s; }} .step.s3 {{ animation-delay: 5s; }}
+.step.s1 .dot, .step.s2 .dot, .step.s3 .dot {{ animation: dot-on 0.4s ease forwards; }}
+.step.s1 .dot {{ animation-delay: 0.2s; }} .step.s2 .dot {{ animation-delay: 2.5s; }} .step.s3 .dot {{ animation-delay: 5s; }}
+@keyframes dot-on {{ to {{ background: {PRIMARY}; box-shadow: 0 0 0 4px rgba(30,154,124,0.15); }} }}
+.status-note {{ font-size: 0.8rem; color: {TEXT_MUTED}; margin-top: 1rem; }}
 </style>
 """
 
@@ -181,16 +232,64 @@ def sample_files(key):
     return sorted((SAMPLES_DIR / key).glob("*.jpg"))
 
 
-def run(images, truth=None, source=""):
-    with st.spinner("Extracting ViT features and running the quantum circuit ..."):
-        results, hierarchy, n_models, n_images = predict(images)
+def _thumb_uri(img, size=480):
+    t = img.convert("RGB").copy()
+    t.thumbnail((size, size))
+    buf = io.BytesIO()
+    t.save(buf, format="JPEG", quality=80)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def _loading_html(images, max_frames=8, frame_s=1.2):
+    """Scanning animation over the patient's own images while the model runs."""
+    n = len(images)
+    idx = sorted(set(round(i * (n - 1) / max(1, min(n, max_frames) - 1)) for i in range(min(n, max_frames))))
+    frames = [_thumb_uri(images[i]) for i in idx]
+    k = len(frames)
+    total = k * frame_s
+    if k == 1:
+        frame_css = ".scan-box img.f0 { opacity: 1; }"
+    else:
+        on = 100 / k
+        fade = min(on * 0.25, 8)
+        frame_css = (
+            f"@keyframes cycle {{ 0% {{ opacity: 0; }} {fade:.2f}% {{ opacity: 1; }} "
+            f"{on:.2f}% {{ opacity: 1; }} {on + fade:.2f}% {{ opacity: 0; }} 100% {{ opacity: 0; }} }}"
+            f".scan-box img {{ animation: cycle {total:.1f}s linear infinite; }}"
+            + "".join(f".scan-box img.f{j} {{ animation-delay: {j * frame_s:.1f}s; }}" for j in range(k))
+        )
+    imgs = "".join(f'<img class="f{j}" src="{uri}" alt="">' for j, uri in enumerate(frames))
+    return f"""
+    <style>{frame_css}</style>
+    <div class="scan-wrap">
+      <div class="scan-frame"><div class="scan-box">
+        {imgs}
+        <div class="scan-tint"></div>
+        <div class="scan-line"></div>
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+        <div class="scan-count">Scanning {n} image{'s' if n != 1 else ''}</div>
+      </div></div>
+      <div>
+        <div class="status-title"><div class="spinner"></div>Running inference&hellip;</div>
+        <div class="step s1"><span class="dot"></span>Extracting ViT-B/16 features from each image</div>
+        <div class="step s2"><span class="dot"></span>Pooling all images with patient-level attention</div>
+        <div class="step s3"><span class="dot"></span>Applying the 16-qubit task-structured circuit</div>
+        <div class="status-note">This usually takes a few seconds per patient.</div>
+      </div>
+    </div>
+    """
+
+
+def run(images, slot, truth=None, source=""):
+    slot.html(_loading_html(images))
+    results, hierarchy, n_models, n_images = predict(images)
     if n_models > 1:
         caption = f"{source}{n_images} image(s), {n_models} QMT-PAT models (folds {', '.join(map(str, FOLDS))}) averaged."
     else:
         caption = f"{source}{n_images} image(s) read together as one patient by QMT-PAT (fold {FOLDS[0]} model)."
-    if n_images > 108:
-        caption += " 108 evenly spaced images used."
     st.session_state["results_html"] = _results_html(results, hierarchy, caption, truth)
+    slot.html(st.session_state["results_html"])
 
 
 # ---------------------------------------------------------------- page
@@ -210,6 +309,14 @@ except Exception as e:  # missing checkpoints / no network
 
 samples = get_samples()
 left, right = st.columns([1, 2], gap="large")
+
+with right:
+    st.markdown("#### Prediction results")
+    results_slot = st.empty()
+    results_slot.html(st.session_state.get(
+        "results_html",
+        '<p class="placeholder">Pick a sample patient or upload image(s), then click Analyze.</p>',
+    ))
 
 with left:
     st.markdown("#### Input image(s)")
@@ -238,7 +345,7 @@ with left:
                     cols[i % 3].image(str(f), width="stretch")
             if st.button("Analyze sample patient", type="primary", width="stretch"):
                 meta = samples[key]
-                run([Image.open(f) for f in files], source=f"Sample patient {meta['patient_id']}: ")
+                run([Image.open(f) for f in files], results_slot, source=f"Sample patient {meta['patient_id']}: ")
             st.caption(
                 "Sample patients are held-out test patients of fold 0, never seen in training "
                 "by this model. Images: EGID dataset, CC BY-NC-ND 4.0."
@@ -252,13 +359,6 @@ with left:
         )
         if st.button("Analyze uploaded image(s)", type="primary", disabled=not uploads, width="stretch"):
             uploads = sorted(uploads, key=lambda f: f.name)
-            run([Image.open(f) for f in uploads])
-
-with right:
-    st.markdown("#### Prediction results")
-    st.html(st.session_state.get(
-        "results_html",
-        '<p class="placeholder">Pick a sample patient or upload image(s), then click Analyze.</p>',
-    ))
+            run([Image.open(f) for f in uploads], results_slot)
 
 st.html(DISCLAIMER_HTML)
