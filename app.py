@@ -141,18 +141,17 @@ HERO_HTML = """
     <span class="badge">Presence of atrophy</span>
     <span class="badge">Distribution of atrophy</span>
     <span class="badge">Gastritis type</span>
-    <span class="badge">16-qubit circuit</span>
   </div>
 </div>
 """
 
 ABOUT_HTML = f"""
 <div class="about-panel">
-<p>Gastritis, inflammation of the stomach lining, is one of the clearest early warning
-signs doctors look for when assessing a patient's risk of developing stomach cancer down
-the line. Left unaddressed, especially when driven by <i>H. pylori</i> infection, it can
-progress through a well-documented sequence of increasingly serious changes to the
-stomach lining. Catching and correctly characterizing it early matters.</p>
+<p><b>Gastritis</b>, inflammation of the stomach lining, is one of the clearest <b>early warning
+signs</b> doctors look for when assessing a patient's risk of developing <b>stomach cancer</b> down
+the line. Left unaddressed, especially when driven by <b><i>H. pylori</i> infection</b>, it can
+progress through a well-documented sequence of <b>increasingly serious changes</b> to the
+stomach lining. Catching and correctly characterizing it <b>early</b> matters.</p>
 <p>This app runs <b>QMT-PAT</b>, a hybrid quantum-classical model that reads <b>all</b> of a
 patient's endoscopy images together and answers the four questions a gastroenterologist would ask:</p>
 <ul>
@@ -162,10 +161,6 @@ patient's endoscopy images together and answers the four questions a gastroenter
 <li>Which broader type of gastritis does the pattern most resemble, autoimmune,
 or driven by <i>H. pylori</i>?</li>
 </ul>
-<p><b>How it works.</b> A fine-tuned Vision Transformer (ViT-B/16) turns each image into a feature
-vector; a patient-level attention model pools all images into one summary per question and makes a
-first prediction; a simulated <b>16-qubit circuit</b> (4 qubits per question, entangled across questions)
-then adds a small learned correction.</p>
 <p style="color:{TEXT_MUTED}; font-size:0.85rem; margin-bottom:0;">Research prototype, not a diagnostic device.
 Not clinically validated. Should never inform real patient care.</p>
 </div>
